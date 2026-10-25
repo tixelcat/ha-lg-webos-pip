@@ -62,7 +62,7 @@
       "step": {
         "user": {
           "title": "PIP trigger",
-          "description": "When one of the entities changes to the trigger state, show a camera or URL on the TV.",
+          "description": "When one of the entities changes to the trigger state while the TV is on, show a camera or URL on the TV.",
           "data": {
             "name": "Name",
             "trigger_entities": "Trigger entities",
@@ -73,8 +73,7 @@
             "mode": "Stream type",
             "position": "Position",
             "size": "Size",
-            "timeout": "Close after",
-            "only_when_tv_on": "Only when the TV is on"
+            "timeout": "Close after"
           },
           "data_description": {
             "trigger_entities": "e.g. a doorbell binary sensor or event entity.",
@@ -89,7 +88,7 @@
         },
         "reconfigure": {
           "title": "PIP trigger",
-          "description": "When one of the entities changes to the trigger state, show a camera or URL on the TV.",
+          "description": "When one of the entities changes to the trigger state while the TV is on, show a camera or URL on the TV.",
           "data": {
             "name": "Name",
             "trigger_entities": "Trigger entities",
@@ -100,8 +99,7 @@
             "mode": "Stream type",
             "position": "Position",
             "size": "Size",
-            "timeout": "Close after",
-            "only_when_tv_on": "Only when the TV is on"
+            "timeout": "Close after"
           },
           "data_description": {
             "trigger_entities": "e.g. a doorbell binary sensor or event entity.",
@@ -165,7 +163,7 @@
   "services": {
     "show": {
       "name": "Show PIP",
-      "description": "Shows a camera or URL as picture-in-picture on the TV.",
+      "description": "Shows a camera or URL as picture-in-picture on the TV. Does nothing while the TV is off.",
       "fields": {
         "tv": {
           "name": "TV",
@@ -207,7 +205,7 @@
     },
     "close": {
       "name": "Close PIP",
-      "description": "Closes the PIP on the TV.",
+      "description": "Closes the PIP on the TV. Does nothing while the TV is off.",
       "fields": {
         "tv": {
           "name": "TV",

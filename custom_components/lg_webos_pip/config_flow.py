@@ -19,7 +19,6 @@ from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.network import NoURLAvailableError, get_url
 from homeassistant.helpers.selector import (
-    BooleanSelector,
     EntitySelector,
     EntitySelectorConfig,
     NumberSelector,
@@ -38,7 +37,6 @@ from .const import (
     CONF_CAMERA,
     CONF_HA_URL,
     CONF_MODE,
-    CONF_ONLY_WHEN_TV_ON,
     CONF_POSITION,
     CONF_SIZE,
     CONF_TIMEOUT,
@@ -179,7 +177,6 @@ TRIGGER_SCHEMA = vol.Schema(
         vol.Optional(CONF_POSITION): POSITION_SELECTOR,
         vol.Optional(CONF_SIZE): SIZE_SELECTOR,
         vol.Optional(CONF_TIMEOUT): TIMEOUT_SELECTOR,
-        vol.Required(CONF_ONLY_WHEN_TV_ON, default=True): BooleanSelector(),
     }
 )
 

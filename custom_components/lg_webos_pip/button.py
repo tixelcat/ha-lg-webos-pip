@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Awaitable, Callable
+from functools import partial
 
 from homeassistant.components.button import ButtonEntity
 from homeassistant.const import EntityCategory
@@ -23,7 +24,7 @@ async def async_setup_entry(
     async_add_entities([
         PipActionButton(controller, "send_connection", controller.async_send_connection, EntityCategory.CONFIG),
         PipActionButton(controller, "open_setup", controller.async_open_setup, EntityCategory.CONFIG),
-        PipActionButton(controller, "close_pip", controller.async_close, None),
+        PipActionButton(controller, "close_pip", partial(controller.async_close, raise_if_off=True), None),
     ])
     for subentry_id, trigger in controller.triggers.items():
         async_add_entities([PipTestButton(trigger)], config_subentry_id=subentry_id)
@@ -46,10 +47,10 @@ class PipActionButton(PipEntity, ButtonEntity):
 
 
 class PipTestButton(PipTriggerEntity, ButtonEntity):
-    """Shows this trigger's PIP now, even if the TV-on condition isn't met."""
+    """Shows this trigger's PIP now; says so if the TV is off."""
 
     def __init__(self, trigger: PipTrigger) -> None:
         super().__init__(trigger, "test")
 
     async def async_press(self) -> None:
-        await self.trigger.controller.async_show(self.trigger.config)
+        await self.trigger.controller.async_show(self.trigger.config, raise_if_off=True)

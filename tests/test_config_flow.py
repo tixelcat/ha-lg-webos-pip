@@ -60,19 +60,17 @@ async def test_trigger_subentry_flow(hass: HomeAssistant, tv, webos_calls) -> No
 
     # needs exactly one of camera / url
     result = await hass.config_entries.subentries.async_configure(
-        result["flow_id"], {"name": "Gate", "trigger_entities": ["binary_sensor.gate"], "only_when_tv_on": True})
+        result["flow_id"], {"name": "Gate", "trigger_entities": ["binary_sensor.gate"]})
     assert result["errors"] == {"base": "camera_or_url"}
 
     result = await hass.config_entries.subentries.async_configure(
         result["flow_id"],
-        {"name": "Gate", "trigger_entities": ["binary_sensor.gate"], "camera": CAMERA, "size": 40.0,
-         "only_when_tv_on": False})
+        {"name": "Gate", "trigger_entities": ["binary_sensor.gate"], "camera": CAMERA, "size": 40.0})
     assert result["type"] is FlowResultType.CREATE_ENTRY
     await hass.async_block_till_done()
 
     gate = next(s for s in entry.subentries.values() if s.title == "Gate")
-    assert dict(gate.data) == {"trigger_entities": ["binary_sensor.gate"], "camera": CAMERA, "size": 40,
-                               "only_when_tv_on": False}
+    assert dict(gate.data) == {"trigger_entities": ["binary_sensor.gate"], "camera": CAMERA, "size": 40}
 
     # the new trigger is live after the automatic reload
     hass.states.async_set("binary_sensor.gate", "off")
@@ -90,8 +88,7 @@ async def test_trigger_reconfigure(hass: HomeAssistant, tv, webos_calls) -> None
     assert result["type"] is FlowResultType.FORM
     result = await hass.config_entries.subentries.async_configure(
         result["flow_id"],
-        {"name": "Front door", "trigger_entities": [DOORBELL], "url": "http://cam/stream.m3u8", "mode": "hls",
-         "only_when_tv_on": True})
+        {"name": "Front door", "trigger_entities": [DOORBELL], "url": "http://cam/stream.m3u8", "mode": "hls"})
     assert result["type"] is FlowResultType.ABORT
     assert result["reason"] == "reconfigure_successful"
     await hass.async_block_till_done()

@@ -118,13 +118,14 @@ On the integration page, click **Add PIP trigger**. Each trigger says *when X ha
 | Trigger state | optional. Empty means binary sensors, switches and input booleans fire on `on`, and everything else (e.g. **event entities**) fires on every change. Set it to fire on a specific state, like `open`. |
 | Camera *or* URL | what to show (see [Sources](#sources)) |
 | Label, stream type, position, size, close after | optional per-trigger overrides |
-| Only when the TV is on | skip the trigger while the TV is off (default on) |
 
 Each trigger gets its own device with:
 - **Enabled**, a switch to pause the trigger, e.g. at night.
-- **Test**, a button that shows the PIP now, even if the TV-on condition isn't met.
+- **Test**, a button that shows the PIP now.
 
 Edit a trigger later with its **⋮ → Reconfigure** menu.
+
+**Nothing is ever sent to a TV that is off.** Triggers and the `show` / `close` actions skip quietly, so automations don't fail. Buttons report that the TV is off.
 
 The TV also gets three buttons: **Send connection to TV**, **Open setup on TV** and **Close PIP**.
 
@@ -214,7 +215,7 @@ Launching again while the PIP is open swaps the feed and restarts the timer.
 
 | Problem | Fix |
 |---|---|
-| Nothing happens on a trigger | Check the trigger's **Enabled** switch and the "only when TV is on" condition, then press its **Test** button. Look in **Settings → System → Logs** for `lg_webos_pip`. |
+| Nothing happens on a trigger | Check the trigger's **Enabled** switch and that the TV's media player is `on`, then press the trigger's **Test** button. Look in **Settings → System → Logs** for `lg_webos_pip`. |
 | "The LG webOS TV integration is not set up" | Set up HA's LG webOS TV integration and make sure the TV is paired. |
 | PIP shows "Not set up yet" | Enter the URL and token in the integration and press **Send connection to TV**, or use the TV setup screen. |
 | "Authentication failed" | The token was deleted or mistyped. Create a new one. |

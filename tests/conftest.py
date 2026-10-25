@@ -11,7 +11,6 @@ from homeassistant.helpers import entity_registry as er
 from custom_components.lg_webos_pip.const import (
     CONF_CAMERA,
     CONF_HA_URL,
-    CONF_ONLY_WHEN_TV_ON,
     CONF_TOKEN,
     CONF_TRIGGER_ENTITIES,
     CONF_TV,
@@ -66,7 +65,7 @@ def make_entry(options: dict | None = None, **trigger: object) -> MockConfigEntr
         options={k: v for k, v in merged.items() if v is not None},
         subentries_data=[
             ConfigSubentryData(
-                data={CONF_TRIGGER_ENTITIES: [DOORBELL], CONF_CAMERA: CAMERA, CONF_ONLY_WHEN_TV_ON: True, **trigger},
+                data={CONF_TRIGGER_ENTITIES: [DOORBELL], CONF_CAMERA: CAMERA, **trigger},
                 subentry_type=SUBENTRY_TRIGGER,
                 title="Doorbell",
                 unique_id=None,

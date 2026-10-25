@@ -18,7 +18,6 @@ from .const import (
     CONF_HA_URL,
     CONF_MODE,
     CONF_MUTED,
-    CONF_ONLY_WHEN_TV_ON,
     CONF_POSITION,
     CONF_SIZE,
     CONF_TIMEOUT,
@@ -99,9 +98,19 @@ class PipController:
             params["connect"] = connection
         return params
 
-    async def _launch(self, params: dict[str, Any]) -> None:
+    async def _launch(self, params: dict[str, Any], *, raise_if_off: bool) -> None:
+        """Launch the app, but only while the TV is on.
+
+        Triggers and actions skip quietly when it's off; buttons pressed by a
+        user raise so the UI says why nothing happened.
+        """
         if not self.hass.services.has_service(WEBOSTV_DOMAIN, "command"):
             raise HomeAssistantError("The LG webOS TV integration is not set up")
+        if not self.tv_is_on:
+            if raise_if_off:
+                raise HomeAssistantError(f"{self.tv_entity_id} is off")
+            _LOGGER.debug("Not launching on %s: the TV is off", self.tv_entity_id)
+            return
         _LOGGER.debug("Launching %s on %s with %s", self.app_id, self.tv_entity_id,
                       {k: v for k, v in params.items() if k != "connect"})
         await self.hass.services.async_call(
@@ -115,23 +124,23 @@ class PipController:
             blocking=True,
         )
 
-    async def async_show(self, display: dict[str, Any]) -> None:
+    async def async_show(self, display: dict[str, Any], *, raise_if_off: bool = False) -> None:
         params = self.build_params(display)
         if not params.get(CONF_CAMERA) and not params.get(CONF_URL):
             raise HomeAssistantError("Choose a camera or a URL to show")
-        await self._launch(params)
+        await self._launch(params, raise_if_off=raise_if_off)
 
-    async def async_close(self) -> None:
-        await self._launch({"close": True})
+    async def async_close(self, *, raise_if_off: bool = False) -> None:
+        await self._launch({"close": True}, raise_if_off=raise_if_off)
 
     async def async_send_connection(self) -> None:
         connection = self._connection()
         if connection is None:
             raise HomeAssistantError("Set the Home Assistant URL and access token in the integration options first")
-        await self._launch({"connect": connection})
+        await self._launch({"connect": connection}, raise_if_off=True)
 
     async def async_open_setup(self) -> None:
-        await self._launch({"settings": True})
+        await self._launch({"settings": True}, raise_if_off=True)
 
     # ---------- triggers ----------
 
@@ -187,9 +196,6 @@ class PipTrigger:
     @callback
     def _handle(self, event: Event[EventStateChangedData]) -> None:
         if not self.enabled or not self.matches(event.data["old_state"], event.data["new_state"]):
-            return
-        if self.config.get(CONF_ONLY_WHEN_TV_ON, True) and not self.controller.tv_is_on:
-            _LOGGER.debug("%s fired but %s is off", self.subentry.title, self.controller.tv_entity_id)
             return
         self.controller.hass.async_create_task(self.async_fire(), f"{self.subentry.title} PIP")
 

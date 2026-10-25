@@ -62,7 +62,7 @@
       "step": {
         "user": {
           "title": "PIP trigger",
-          "description": "When one of the entities changes to the trigger state, show a camera or URL on the TV.",
+          "description": "When one of the entities changes to the trigger state while the TV is on, show a camera or URL on the TV.",
           "data": {
             "name": "Name",
             "trigger_entities": "Trigger entities",
@@ -73,8 +73,7 @@
             "mode": "Stream type",
             "position": "Position",
             "size": "Size",
-            "timeout": "Close after",
-            "only_when_tv_on": "Only when the TV is on"
+            "timeout": "Close after"
           },
           "data_description": {
             "trigger_entities": "e.g. a doorbell binary sensor or event entity.",
@@ -100,8 +99,7 @@
             "mode": "[%key:component::lg_webos_pip::config_subentries::trigger::step::user::data::mode%]",
             "position": "[%key:component::lg_webos_pip::config_subentries::trigger::step::user::data::position%]",
             "size": "[%key:component::lg_webos_pip::config_subentries::trigger::step::user::data::size%]",
-            "timeout": "[%key:component::lg_webos_pip::config_subentries::trigger::step::user::data::timeout%]",
-            "only_when_tv_on": "[%key:component::lg_webos_pip::config_subentries::trigger::step::user::data::only_when_tv_on%]"
+            "timeout": "[%key:component::lg_webos_pip::config_subentries::trigger::step::user::data::timeout%]"
           },
           "data_description": {
             "trigger_entities": "[%key:component::lg_webos_pip::config_subentries::trigger::step::user::data_description::trigger_entities%]",
@@ -143,43 +141,86 @@
   },
   "entity": {
     "button": {
-      "send_connection": { "name": "Send connection to TV" },
-      "open_setup": { "name": "Open setup on TV" },
-      "close_pip": { "name": "Close PIP" },
-      "test": { "name": "Test" }
+      "send_connection": {
+        "name": "Send connection to TV"
+      },
+      "open_setup": {
+        "name": "Open setup on TV"
+      },
+      "close_pip": {
+        "name": "Close PIP"
+      },
+      "test": {
+        "name": "Test"
+      }
     },
     "switch": {
-      "enabled": { "name": "Enabled" }
+      "enabled": {
+        "name": "Enabled"
+      }
     }
   },
   "services": {
     "show": {
       "name": "Show PIP",
-      "description": "Shows a camera or URL as picture-in-picture on the TV.",
+      "description": "Shows a camera or URL as picture-in-picture on the TV. Does nothing while the TV is off.",
       "fields": {
-        "tv": { "name": "TV", "description": "The TV's media player. Optional when only one TV is set up." },
-        "camera": { "name": "Camera", "description": "Camera entity to show." },
-        "url": { "name": "URL", "description": "Instead of a camera: HLS, MJPEG or video URL, or an HA path like /media/local/clip.mp4." },
-        "title": { "name": "Label", "description": "Text shown in the PIP." },
-        "mode": { "name": "Stream type", "description": "mjpeg, snapshot, hls or webrtc." },
-        "position": { "name": "Position", "description": "Corner of the screen." },
-        "size": { "name": "Size", "description": "Width in percent of the screen width." },
-        "timeout": { "name": "Close after", "description": "Seconds until it closes; 0 = stays open." },
-        "muted": { "name": "Muted", "description": "Mute audio (HLS, WebRTC and video URLs)." }
+        "tv": {
+          "name": "TV",
+          "description": "The TV's media player. Optional when only one TV is set up."
+        },
+        "camera": {
+          "name": "Camera",
+          "description": "Camera entity to show."
+        },
+        "url": {
+          "name": "URL",
+          "description": "Instead of a camera: HLS, MJPEG or video URL, or an HA path like /media/local/clip.mp4."
+        },
+        "title": {
+          "name": "Label",
+          "description": "Text shown in the PIP."
+        },
+        "mode": {
+          "name": "Stream type",
+          "description": "mjpeg, snapshot, hls or webrtc."
+        },
+        "position": {
+          "name": "Position",
+          "description": "Corner of the screen."
+        },
+        "size": {
+          "name": "Size",
+          "description": "Width in percent of the screen width."
+        },
+        "timeout": {
+          "name": "Close after",
+          "description": "Seconds until it closes; 0 = stays open."
+        },
+        "muted": {
+          "name": "Muted",
+          "description": "Mute audio (HLS, WebRTC and video URLs)."
+        }
       }
     },
     "close": {
       "name": "Close PIP",
-      "description": "Closes the PIP on the TV.",
+      "description": "Closes the PIP on the TV. Does nothing while the TV is off.",
       "fields": {
-        "tv": { "name": "[%key:component::lg_webos_pip::services::show::fields::tv::name%]", "description": "[%key:component::lg_webos_pip::services::show::fields::tv::description%]" }
+        "tv": {
+          "name": "[%key:component::lg_webos_pip::services::show::fields::tv::name%]",
+          "description": "[%key:component::lg_webos_pip::services::show::fields::tv::description%]"
+        }
       }
     },
     "send_connection": {
       "name": "Send connection to TV",
       "description": "Sends the Home Assistant URL and access token from the integration options to the TV app.",
       "fields": {
-        "tv": { "name": "[%key:component::lg_webos_pip::services::show::fields::tv::name%]", "description": "[%key:component::lg_webos_pip::services::show::fields::tv::description%]" }
+        "tv": {
+          "name": "[%key:component::lg_webos_pip::services::show::fields::tv::name%]",
+          "description": "[%key:component::lg_webos_pip::services::show::fields::tv::description%]"
+        }
       }
     }
   }

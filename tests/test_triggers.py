@@ -49,18 +49,27 @@ async def test_binary_sensor_on_shows_pip(hass: HomeAssistant, tv, webos_calls) 
     assert len(webos_calls) == 1
 
 
-async def test_tv_off_skips_unless_disabled_condition(hass: HomeAssistant, tv, webos_calls) -> None:
+async def test_tv_off_skips_triggers_and_actions(hass: HomeAssistant, tv, webos_calls) -> None:
     await setup_entry(hass, make_entry())
     hass.states.async_set(TV, "off")
     await ring(hass)
+    # actions don't fail an automation, they just do nothing
+    await hass.services.async_call(DOMAIN, "show", {"camera": CAMERA}, blocking=True)
+    await hass.services.async_call(DOMAIN, "close", {}, blocking=True)
     assert webos_calls == []
 
 
-async def test_tv_off_still_fires_without_condition(hass: HomeAssistant, tv, webos_calls) -> None:
-    await setup_entry(hass, make_entry(only_when_tv_on=False))
+async def test_tv_off_buttons_say_so(hass: HomeAssistant, tv, webos_calls) -> None:
+    entry = await setup_entry(hass, make_entry())
+    reg = er.async_get(hass)
+    sub_id = next(iter(entry.subentries))
     hass.states.async_set(TV, "off")
-    await ring(hass)
-    assert len(webos_calls) == 1
+    for unique_id in (f"{sub_id}_test", f"{entry.entry_id}_send_connection",
+                      f"{entry.entry_id}_open_setup", f"{entry.entry_id}_close_pip"):
+        button = reg.async_get_entity_id("button", DOMAIN, unique_id)
+        with pytest.raises(HomeAssistantError, match="is off"):
+            await hass.services.async_call("button", "press", {ATTR_ENTITY_ID: button}, blocking=True)
+    assert webos_calls == []
 
 
 async def test_event_entity_fires_on_each_event(hass: HomeAssistant, tv, webos_calls) -> None:
@@ -111,7 +120,6 @@ async def test_buttons(hass: HomeAssistant, tv, webos_calls) -> None:
     entry = await setup_entry(hass, make_entry())
     reg = er.async_get(hass)
     sub_id = next(iter(entry.subentries))
-    hass.states.async_set(TV, "off")  # the test button ignores the TV-on condition
 
     for unique_id in (f"{sub_id}_test", f"{entry.entry_id}_send_connection",
                       f"{entry.entry_id}_open_setup", f"{entry.entry_id}_close_pip"):

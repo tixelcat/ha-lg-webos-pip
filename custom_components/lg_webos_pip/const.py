@@ -29,7 +29,6 @@ CONF_MUTED: Final = "muted"
 SUBENTRY_TRIGGER: Final = "trigger"
 CONF_TRIGGER_ENTITIES: Final = "trigger_entities"
 CONF_TRIGGER_STATE: Final = "trigger_state"
-CONF_ONLY_WHEN_TV_ON: Final = "only_when_tv_on"
 
 MODES: Final = ["mjpeg", "snapshot", "hls", "webrtc"]
 POSITIONS: Final = ["top-right", "top-left", "bottom-right", "bottom-left"]
