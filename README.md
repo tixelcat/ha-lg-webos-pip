@@ -22,7 +22,7 @@
 - Screensaver wake-up on supported rooted LG TVs
 - Automatic cleanup and timeout handling
 
-**Credits:** Original project by [ISDaddy](https://github.com/ISDaddy/ha-lg-webos-pip).
+**Credits:** Original project by [ISDaddy](https://github.com/ISDaddy).
 Modifications by [tixelcat](https://github.com/tixelcat).
 
 ---
