@@ -1,7 +1,32 @@
-
+﻿
 [![Download Latest Release](https://img.shields.io/badge/Download-Latest%20IPK-blue?style=for-the-badge&logo=github)](https://github.com/tixelcat/ha-lg-webos-pip/releases/latest)
 
-# LG webOS PIP for Home Assistant
+# Home Assistant PIP
+
+**Enhanced LG webOS fork by [tixelcat](https://github.com/tixelcat)**
+
+[![Download Latest Release](https://img.shields.io/badge/Download-Latest_IPK-blue?style=for-the-badge&logo=github)](https://github.com/tixelcat/ha-lg-webos-pip/releases/latest)
+
+## Quick start
+
+1. [Download the latest IPK](https://github.com/tixelcat/ha-lg-webos-pip/releases/latest).
+2. Install on your LG TV using Homebrew/SSH or Developer Mode.
+3. Install the LG webOS PIP integration from this repository using HACS.
+4. Configure the TV connection and Home Assistant access token.
+5. Add a doorbell or camera automation.
+
+**[Complete installation guide (step by step)](INSTALLATION.md)**
+
+### Enhanced features
+- Improved overlay behavior and video playback
+- Better remote-control recovery
+- Screensaver wake-up on supported rooted LG TVs
+- Automatic cleanup and timeout handling
+
+**Credits:** Original project by [ISDaddy](https://github.com/ISDaddy/ha-lg-webos-pip).
+Modifications by [tixelcat](https://github.com/tixelcat).
+
+---
 
 Show a Home Assistant camera, or any video feed, as a **small picture-in-picture box on your LG TV**, on top of whatever you're watching: live TV, HDMI, Netflix, the home screen. Typical use: someone rings the doorbell and the door camera appears in the corner of the TV for 30 seconds.
 
@@ -104,10 +129,10 @@ The TV app isn't in the LG Content Store, so it's installed through Developer Mo
 
    If `--getkey` fails, the Key Server toggle is off. It turns itself off again after a reboot.
 
-4. **Install the app.** Download `io.github.isdaddy.lgwebospip_*.ipk` from the [latest release](https://github.com/ISDaddy/ha-lg-webos-pip/releases/latest), then:
+4. **Install the app.** Download `io.github.isdaddy.lgwebospip_*.ipk` from the [latest release](https://github.com/tixelcat/ha-lg-webos-pip/releases/latest), then:
 
    ```bash
-   ares-install -d tv io.github.isdaddy.lgwebospip_1.0.0_all.ipk
+   ares-install -d tv lgwebospip_tixelcat_1.0.4_all.ipk
    ```
 
    Or build it from source: `cd webos-app && npm install && npm run install-tv`.
@@ -288,3 +313,4 @@ Releases: publishing a GitHub release builds the IPK, with the version taken fro
 ## License
 
 MIT
+
