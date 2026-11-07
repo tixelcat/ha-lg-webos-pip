@@ -1,4 +1,4 @@
-﻿
+
 [![Download Latest Release](https://img.shields.io/badge/Download-Latest%20IPK-blue?style=for-the-badge&logo=github)](https://github.com/tixelcat/ha-lg-webos-pip/releases/latest)
 
 # Home Assistant PIP
@@ -313,4 +313,3 @@ Releases: publishing a GitHub release builds the IPK, with the version taken fro
 ## License
 
 MIT
-
