@@ -5,7 +5,6 @@
 
 **Enhanced LG webOS fork by [tixelcat](https://github.com/tixelcat)**
 
-[![Download Latest Release](https://img.shields.io/badge/Download-Latest_IPK-blue?style=for-the-badge&logo=github)](https://github.com/tixelcat/ha-lg-webos-pip/releases/latest)
 
 ## Quick start
 
@@ -129,7 +128,7 @@ The TV app isn't in the LG Content Store, so it's installed through Developer Mo
 
    If `--getkey` fails, the Key Server toggle is off. It turns itself off again after a reboot.
 
-4. **Install the app.** Download `io.github.isdaddy.lgwebospip_*.ipk` from the [latest release](https://github.com/tixelcat/ha-lg-webos-pip/releases/latest), then:
+4. **Install the app.** Download `lgwebospip_tixelcat_1.0.4_all.ipk` from the [latest release](https://github.com/tixelcat/ha-lg-webos-pip/releases/latest), then:
 
    ```bash
    ares-install -d tv lgwebospip_tixelcat_1.0.4_all.ipk
