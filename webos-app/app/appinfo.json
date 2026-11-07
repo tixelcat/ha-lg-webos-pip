@@ -1,15 +1,17 @@
 {
   "id": "io.github.isdaddy.lgwebospip",
-  "version": "1.0.0",
-  "vendor": "ISDaddy",
+  "version": "1.0.4",
+  "vendor": "ISDaddy / tixelcat",
   "type": "web",
   "main": "index.html",
-  "title": "HA PIP",
+  "title": "Home Assistant PIP",
   "icon": "icon.png",
   "largeIcon": "largeIcon.png",
   "resolution": "1920x1080",
   "transparent": true,
   "defaultWindowType": "overlay",
   "disableBackHistoryAPI": true,
-  "requiredACG": []
+  "requiredACG": [],
+  "noSplashOnLaunch": true,
+  "spinnerOnLaunch": false
 }

@@ -1,5 +1,11 @@
 /*
- * HA PIP: shows one Home Assistant camera (or any video URL) in a small box
+ * Original project: ISDaddy (MIT License)
+ * Modifications: tixelcat (2026) — overlay lifecycle, player cleanup,
+ * screensaver wake via Homebrew root service with standard webOS fallback.
+ * See MODIFICATIONS.md and LICENSE for attribution.
+ */
+/*
+ * Home Assistant PIP: shows one Home Assistant camera (or any video URL) in a small box
  * over whatever the TV is playing, then closes itself.
  *
  * Launch params (sent by the Home Assistant integration via
@@ -35,6 +41,9 @@
   var toastTimer = null;
   var showId = 0;          // bumped per show()/closePip() so stale retries stop
   var returnToSettings = false;
+  var closeAnimationTimer = null;
+  var exitRequested = false;
+  var pipVisible = false;
 
   var player = new Player(video, document.getElementById('frame'), function (state, info) {
     spinner.classList.toggle('hidden', state !== 'loading');
@@ -112,7 +121,7 @@
     var key = conn.url + '|' + conn.token;
     if (ha && ha.connected && haKey === key) return Promise.resolve(ha);
     if (!conn.url || !conn.token) {
-      var err = new Error('Not set up yet: open HA PIP from the TV\'s app list, or add the access token in the Home Assistant integration.');
+      var err = new Error('Not set up yet: open Home Assistant PIP from the TV\'s app list, or add the access token in the Home Assistant integration.');
       err.fatal = true;
       return Promise.reject(err);
     }
@@ -122,11 +131,73 @@
     return ha.connect().then(function () { return ha; });
   }
 
+  // ---------- Screensaver wake via Homebrew root service ----------
+  // LG's system screensaver may be composited ABOVE a normal overlay window.
+  // Requests sent directly by an ordinary app can be silently denied.
+  // On rooted TVs, Homebrew Channel exposes a root execution service; use it
+  // to ask the native tvpower service to dismiss an active screensaver.
+  // We do not restart Home, send remote keys, or permanently disable burn-in protection.
+  var wakeTimers = [];
+  var WAKE_COMMAND = '/usr/bin/luna-send -n 1 -f luna://com.webos.service.tvpower/power/turnOnScreen \'{}\'';
+
+  function cancelWakeTimers() {
+    wakeTimers.forEach(function (timer) { clearTimeout(timer); });
+    wakeTimers = [];
+  }
+
+  function lunaBridge(uri, data, callback) {
+    try {
+      if (typeof window.PalmServiceBridge !== 'function') {
+        if (callback) callback(new Error('PalmServiceBridge unavailable'));
+        return;
+      }
+      var bridge = new window.PalmServiceBridge();
+      bridge.onservicecallback = function (raw) {
+        try {
+          var obj = JSON.parse(raw);
+          if (callback) callback(null, obj);
+        } catch (err) { if (callback) callback(err); }
+      };
+      bridge.call(uri, JSON.stringify(data));
+    } catch (err) { if (callback) callback(err); }
+  }
+
+  function wakeFromScreenSaver(id) {
+    if (id !== showId || exitRequested) return;
+    lunaBridge('luna://org.webosbrew.hbchannel.service/exec',
+      {command: WAKE_COMMAND}, function (err, response) {
+        if (id !== showId || exitRequested) return;
+        if (err || !response || response.error || response.returnValue === false) {
+          // Fallback for setups without elevated Homebrew service access.
+          console.warn('Homebrew screensaver wake failed:', err || (response && (response.error || response.errorText)));
+          lunaBridge('luna://com.webos.service.tvpower/power/turnOnScreen', {},
+            function (directErr, directResponse) {
+              if (directErr || (directResponse && directResponse.returnValue === false)) {
+                console.warn('Direct wake fallback failed:', directErr || directResponse.errorText);
+              }
+            });
+        }
+      });
+  }
+
+  function scheduleScreensaverWake(id) {
+    cancelWakeTimers();
+    // Trigger immediately and retry briefly: on some devices the system saver
+    // reappears while the overlay app is being brought to the foreground.
+    wakeFromScreenSaver(id);
+    [450, 1300].forEach(function (delay) {
+      wakeTimers.push(setTimeout(function () { wakeFromScreenSaver(id); }, delay));
+    });
+  }
+
   // ---------- PIP ----------
 
   function preparePip(opts) {
     clearTimeout(closeTimer);
     clearTimeout(retryTimer);
+    clearTimeout(closeAnimationTimer);
+    exitRequested = false;
+    pipVisible = true;
     hideError();
     pip.classList.remove('hidden', 'closing');
     POSITIONS.forEach(function (p) { pip.classList.toggle(p, p === opts.position); });
@@ -140,6 +211,8 @@
   function show(params, settings) {
     var opts = resolve(params, settings);
     var id = ++showId;
+    // Wake first so an existing screensaver does not cover the PIP.
+    scheduleScreensaverWake(id);
     player.stop();
     preparePip(opts);
     video.muted = opts.muted;
@@ -183,20 +256,31 @@
   }
 
   function closePip() {
-    showId++;
+    // A timer, Back and an HA close command may all arrive together.
+    // Only the first close should win; a new show() can cancel it.
+    if (exitRequested) return;
+    exitRequested = true;
+    var closingId = ++showId;
     clearTimeout(closeTimer);
     clearTimeout(retryTimer);
+    clearTimeout(closeAnimationTimer);
+    cancelWakeTimers();
+    // Release the stream immediately rather than leaving its renderer active
+    // during the closing animation.
+    player.stop();
     pip.classList.add('closing');
-    setTimeout(function () {
-      player.stop();
+    closeAnimationTimer = setTimeout(function () {
+      if (closingId !== showId) return; // A new doorbell launch superseded close.
+      pipVisible = false;
       pip.classList.add('hidden');
       if (returnToSettings) {
         returnToSettings = false;
+        exitRequested = false;
         Settings.resume();
       } else {
         exitApp();
       }
-    }, 300);
+    }, 180);
   }
 
   function showError(msg) {
@@ -214,12 +298,16 @@
 
   function openSettings() {
     showId++;
+    cancelWakeTimers();
+    clearTimeout(closeAnimationTimer);
+    exitRequested = false;
+    pipVisible = false;
     clearTimeout(closeTimer);
     clearTimeout(retryTimer);
     player.stop();
     pip.classList.add('hidden');
     Settings.open({
-      version: (appInfo.title || 'HA PIP') + ' ' + (appInfo.version || ''),
+      version: (appInfo.title || 'Home Assistant PIP') + ' ' + (appInfo.version || ''),
       toast: showToast,
       onExit: exitApp,
       onPreview: function (draft) {
@@ -239,11 +327,22 @@
   }
 
   function exitApp() {
+    cancelWakeTimers();
+    clearTimeout(closeTimer);
+    clearTimeout(retryTimer);
+    clearTimeout(closeAnimationTimer);
+    pipVisible = false;
+    player.stop();
     Settings.close();
     if (ha) ha.close();
     ha = null;
-    if (webos && typeof webos.close === 'function') webos.close();
-    else window.close();
+    haKey = '';
+    // Close the actual webOS overlay app, not merely its DOM contents.
+    // Focus restoration after closing is owned by webOS, not JavaScript.
+    try {
+      if (webos && typeof webos.close === 'function') webos.close();
+      else window.close();
+    } catch (e) { window.close(); }
   }
 
   function clamp(n, lo, hi) {
@@ -268,7 +367,11 @@
   });
 
   document.addEventListener('visibilitychange', function () {
-    if (document.hidden) player.stop();
+    // webOS may hide an overlay when Home comes forward. The old version
+    // stopped video but left the overlay/app alive, which could retain focus.
+    if (document.hidden && pipVisible && !returnToSettings) {
+      closePip();
+    }
   });
 
   route(initialParams());

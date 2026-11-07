@@ -30,10 +30,16 @@
     this.gen++;
     this.cleanup.forEach(function (fn) { try { fn(); } catch (e) { /* ignore */ } });
     this.cleanup = [];
-    this.video.pause();
-    this.video.removeAttribute('src');
-    this.video.srcObject = null;
-    this.video.load();
+    // IMPORTANT: Do not call video.load() for an MJPEG/snapshot <img>.
+    // On some webOS versions it can engage the video plane and black out
+    // content behind the overlay even though no <video> is playing.
+    var videoUsed = !!(this.video.getAttribute('src') || this.video.srcObject);
+    if (videoUsed) {
+      try { this.video.pause(); } catch (e) { /* ignore */ }
+      this.video.removeAttribute('src');
+      this.video.srcObject = null;
+      try { this.video.load(); } catch (e) { /* ignore */ }
+    }
     this.img.removeAttribute('src');
     this.video.classList.add('hidden');
     this.img.classList.add('hidden');
