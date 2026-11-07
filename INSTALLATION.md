@@ -1,6 +1,6 @@
 # Home Assistant PIP — Installation and configuration
 
-**Enhanced LG webOS fork by [tixelcat](https://github.com/tixelcat), based on the original work by [ISDaddy](https://github.com/ISDaddy/ha-lg-webos-pip).**
+**Enhanced LG webOS fork by [tixelcat](https://github.com/tixelcat), based on the original work by [ISDaddy](https://github.com/ISDaddy).**
 
 This guide covers the **v1.0.4-tixelcat** TV app and the `lg_webos_pip` Home Assistant integration. The TV app displays a Home Assistant camera as a picture-in-picture overlay on compatible LG webOS TVs. The tixelcat fork includes improvements to overlay cleanup, MJPEG playback, remote-control recovery and a best-effort screensaver wake-up path.
 
