@@ -19,6 +19,45 @@ The repository has two parts that work together:
 | **LG webOS PIP** integration | [`custom_components/lg_webos_pip/`](custom_components/lg_webos_pip) | A Home Assistant integration with a UI for choosing *what* to show, *when* (triggers), *where* and *for how long*. It launches the TV app through HA's built-in LG webOS TV integration. |
 
 Verified on an LG OLED G4 (webOS 24, firmware 43.21.73) in Developer Mode, without rooting.
+## Recommended setup: Rooted LG webOS + Homebrew Channel
+
+For the best experience with Home Assistant PIP, consider using a rooted LG webOS TV with [Homebrew Channel](https://github.com/webosbrew/webos-homebrew-channel).
+
+Root access is **optional**, but it enables additional features that are not always available through standard Developer Mode.
+
+### Benefits of a rooted LG TV
+
+- **Screensaver wake-up:** Automatically attempt to dismiss the active screensaver when a camera notification is displayed.
+- **Homebrew Channel:** Manage homebrew applications and updates.
+- **SSH access:** Install, update and troubleshoot applications directly on the TV.
+- **Extended system access:** Access additional webOS services for advanced automation.
+
+### How to root your LG TV
+
+Before attempting to root your television, check compatibility and available methods:
+
+- [Check TV compatibility – CanI.RootMy.TV](https://cani.rootmy.tv/)
+- [RootMy.TV](https://rootmy.tv/)
+- [webOS Homebrew – Rooting Guide](https://www.webosbrew.org/rooting/)
+- [Homebrew Channel on GitHub](https://github.com/webosbrew/webos-homebrew-channel)
+
+**Important:** RootMy.TV exploits have been patched on many newer firmware versions. Rooting is not supported by LG, may affect warranty coverage and carries a risk of damaging the television. Always check model and firmware compatibility before proceeding.
+
+### Non-rooted televisions
+
+Home Assistant PIP can also be installed using LG Developer Mode without root access.
+
+Basic camera overlay functionality is supported on compatible devices. However, enhanced screensaver wake-up and other root-dependent features may be unavailable.
+
+**Recommendation:** Use Homebrew Channel on a supported rooted TV when advanced automation and screensaver wake-up are important. Developer Mode remains an alternative for users who do not want to root their television.
+
+---
+
+**Original project:** [ISDaddy/ha-lg-webos-pip](https://github.com/ISDaddy/ha-lg-webos-pip)
+
+**Enhanced fork and modifications:** [tixelcat](https://github.com/tixelcat)
+
+**License:** MIT – original copyright notices and license terms retained.
 
 ## How it works
 
