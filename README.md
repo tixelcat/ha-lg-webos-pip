@@ -8,7 +8,7 @@
 
 *Concept illustration. Select each camera, corner, size (10%-50%), and On/Off state in the TV app.*
 
-**Downloads:** [GitHub Releases](https://github.com/tixelcat/ha-lg-webos-pip/releases) → select **1.0.6** → Assets → `io.github.tixelcat.lgwebospip_1.0.6_all.ipk` (once published). For installation, configuration and troubleshooting, see **[INSTALLATION.md](INSTALLATION.md)**.
+**Downloads:** [GitHub Releases](https://github.com/tixelcat/ha-lg-webos-pip/releases) → select **1.0.6** → Assets → `io.github.tixelcat.lgwebospip_1.0.6_all.ipk`. For installation, configuration and troubleshooting, see **[INSTALLATION.md](INSTALLATION.md)**.
 
 > **App ID and filename are intentionally different.** The downloadable IPK is branded `tixelcat`, but the *internal* webOS ID is still **`io.github.isdaddy.lgwebospip`**. Use the internal ID in `webostv.command` and `luna-send`. This preserves existing installations and Home Assistant automations.
 
