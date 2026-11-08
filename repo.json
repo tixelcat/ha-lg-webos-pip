@@ -1,0 +1,26 @@
+{
+  "packages": [
+    {
+      "id": "io.github.isdaddy.lgwebospip",
+      "title": "Home Assistant PIP",
+      "shortDescription": "Show one or two Home Assistant cameras as a picture-in-picture overlay on LG webOS TVs.",
+      "fullDescriptionUrl": "https://github.com/tixelcat/ha-lg-webos-pip",
+      "iconUri": "https://raw.githubusercontent.com/tixelcat/ha-lg-webos-pip/main/webos-app/app/largeIcon.png",
+      "manifest": {
+        "id": "io.github.isdaddy.lgwebospip",
+        "version": "1.0.6",
+        "type": "web",
+        "title": "Home Assistant PIP",
+        "appDescription": "Configure up to two Home Assistant camera overlays directly on your LG webOS TV.",
+        "iconUri": "https://raw.githubusercontent.com/tixelcat/ha-lg-webos-pip/main/webos-app/app/largeIcon.png",
+        "sourceUrl": "https://github.com/tixelcat/ha-lg-webos-pip",
+        "rootRequired": "optional",
+        "ipkUrl": "https://github.com/tixelcat/ha-lg-webos-pip/releases/download/1.0.6/io.github.tixelcat.lgwebospip_1.0.6_all.ipk",
+        "ipkHash": {
+          "sha256": "E9FA1F4A14A905130D021D4C5326442393FD332E5DCA439EB2672453FCA45B6B"
+        },
+        "ipkSize": 244518
+      }
+    }
+  ]
+}
