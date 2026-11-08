@@ -1,31 +1,7 @@
 
 [![Download Latest Release](https://img.shields.io/badge/Download-Latest%20IPK-blue?style=for-the-badge&logo=github)](https://github.com/tixelcat/ha-lg-webos-pip/releases/latest)
 
-# Home Assistant PIP
-
-**Enhanced LG webOS fork by [tixelcat](https://github.com/tixelcat)**
-
-
-## Quick start
-
-1. [Download the latest IPK](https://github.com/tixelcat/ha-lg-webos-pip/releases/latest).
-2. Install on your LG TV using Homebrew/SSH or Developer Mode.
-3. Install the LG webOS PIP integration from this repository using HACS.
-4. Configure the TV connection and Home Assistant access token.
-5. Add a doorbell or camera automation.
-
-**[Complete installation guide (step by step)](INSTALLATION.md)**
-
-### Enhanced features
-- Improved overlay behavior and video playback
-- Better remote-control recovery
-- Screensaver wake-up on supported rooted LG TVs
-- Automatic cleanup and timeout handling
-
-**Credits:** Original project by [ISDaddy](https://github.com/ISDaddy).
-Modifications by [tixelcat](https://github.com/tixelcat).
-
----
+# LG webOS PIP for Home Assistant
 
 Show a Home Assistant camera, or any video feed, as a **small picture-in-picture box on your LG TV**, on top of whatever you're watching: live TV, HDMI, Netflix, the home screen. Typical use: someone rings the doorbell and the door camera appears in the corner of the TV for 30 seconds.
 
@@ -89,7 +65,7 @@ Basic camera overlay functionality is supported on compatible devices. However, 
 ## How it works
 
 1. A trigger fires in Home Assistant, e.g. the doorbell's binary sensor turns `on`.
-2. The integration calls `webostv.command` → `system.launcher/launch` with the HA PIP app ID and parameters: camera, position, size, timeout.
+2. Home Assistant calls `webostv.command` -> `system.launcher/launch` with the TV app ID and camera/timeout parameters (directly or through the optional custom integration).
 3. The app opens as an **overlay window** (`"defaultWindowType": "overlay"`, `"transparent": true`). Only the PIP box is visible over the current picture.
 4. The app connects to Home Assistant's WebSocket API with a long-lived token and asks HA for a signed stream URL. MJPEG by default; HLS, WebRTC and snapshots are also available.
 5. After the timeout, or when you press **Back** / **OK**, the app closes and the TV is exactly as before.
@@ -98,45 +74,18 @@ Basic camera overlay functionality is supported on compatible devices. However, 
 
 - An LG webOS TV with the **LG webOS TV** integration set up in Home Assistant. Tested: G4 / webOS 24. Older webOS versions may work, untested.
 - Home Assistant **2025.3** or newer.
-- To install the TV app: the free **Developer Mode** app on the TV and an LG developer account. See [Install the TV app](#1-install-the-tv-app).
+- To install the TV app, use compatible **rooted/Homebrew SSH** or **Developer Mode** as described in [INSTALLATION.md](INSTALLATION.md).
 - A computer with Node.js 18+ for the webOS CLI.
 
 ## Setup
 
 ### 1. Install the TV app
 
-The TV app isn't in the LG Content Store, so it's installed through Developer Mode.
+Choose a rooted/Homebrew SSH installation or an LG Developer Mode installation. See the complete, version-specific [INSTALLATION.md](INSTALLATION.md), including working PowerShell/SCP and TV-side commands.
 
-1. **Enable Developer Mode on the TV**
-   1. Create a free account at [webostv.developer.lge.com](https://webostv.developer.lge.com) and sign in.
-   2. On the TV, install **Developer Mode** from the LG Content Store and sign in with that account.
-   3. Turn on **Dev Mode Status** (the TV reboots), then open the app again and turn on **Key Server**.
-   4. Note the **IP address** and **passphrase** shown in the app.
+**v1.0.5 installer filename:** `io.github.tixelcat.lgwebospip_1.0.5_all.ipk` (available from the v1.0.5-tixelcat GitHub release). The filename uses **tixelcat**, but the internal app ID remains **`io.github.isdaddy.lgwebospip`** for compatibility with existing integrations and TV installations.
 
-2. **Install the webOS CLI** on your computer:
-
-   ```bash
-   npm install -g @webos-tools/cli
-   ```
-
-3. **Register the TV and get its key.** Replace `192.168.1.50` with the TV's IP. Enter the passphrase when asked:
-
-   ```bash
-   ares-setup-device -a tv -i "host=192.168.1.50" -i "port=9922" -i "username=prisoner" -i "default=true"
-   ares-novacom --device tv --getkey
-   ```
-
-   If `--getkey` fails, the Key Server toggle is off. It turns itself off again after a reboot.
-
-4. **Install the app.** Download `lgwebospip_tixelcat_1.0.4_all.ipk` from the [latest release](https://github.com/tixelcat/ha-lg-webos-pip/releases/latest), then:
-
-   ```bash
-   ares-install -d tv lgwebospip_tixelcat_1.0.4_all.ipk
-   ```
-
-   Or build it from source: `cd webos-app && npm install && npm run install-tv`.
-
-> **Developer Mode sessions last ~50 hours.** Open the Developer Mode app and press **Extend** now and then, or the TV removes the app when the session expires. A rooted TV with [Homebrew Channel](https://github.com/webosbrew/webos-homebrew-channel) doesn't have this limit.
+Download the asset from the [tixelcat releases page](https://github.com/tixelcat/ha-lg-webos-pip/releases/latest) for v1.0.5-tixelcat.
 
 ### 2. Connect the TV app to Home Assistant
 
@@ -155,23 +104,13 @@ The app needs your HA URL and a long-lived access token. Create the token in HA 
 
   Navigate with **▲▼**, change choices with **◀▶**, press **OK** to type in a field or press a button. The Magic Remote pointer also works. Press **Save** before exiting.
 
-### 3. Install the Home Assistant integration
+### 3. Install the Home Assistant integration (optional)
 
-**HACS (recommended):** HACS → ⋮ → **Custom repositories** → add `https://github.com/ISDaddy/ha-lg-webos-pip` as type **Integration**. Install **LG webOS PIP**, then restart Home Assistant.
+For the **recommended `webostv.command` launch**, you need only Home Assistant's **built-in LG webOS TV** integration paired with your TV. The custom **LG webOS PIP** integration is optional.
 
-**Manual:** copy `custom_components/lg_webos_pip` to `/config/custom_components/lg_webos_pip`, then restart Home Assistant.
+For its additional UI and trigger management, add `https://github.com/tixelcat/ha-lg-webos-pip` to HACS as a custom Integration, install **LG webOS PIP**, and restart Home Assistant. Or copy `custom_components/lg_webos_pip` to `/config/custom_components/lg_webos_pip` and restart. In Settings -> Devices & services, add **LG webOS PIP** and configure the TV/connection settings.
 
-Then go to **Settings → Devices & services → Add integration → LG webOS PIP**:
-
-| Field | |
-|---|---|
-| TV | your LG TV's media player (from the LG webOS TV integration) |
-| Home Assistant URL as seen from the TV | prefilled with your internal URL |
-| Long-lived access token for the TV app | optional; when set, it's sent to the TV app with every launch |
-| Default stream type / position / size / close after | defaults for this TV |
-| TV app ID | leave as is unless you built the app with another ID |
-
-Everything except the TV can be changed later with **Configure**.
+**Compatibility note:** In one tested environment `lg_webos_pip.show` did not relaunch reliably, whereas repeated direct `webostv.command` launches succeeded over IPTV and YouTube. Start with the direct method below.
 
 ### 4. Add PIP triggers
 
@@ -197,28 +136,47 @@ The TV also gets three buttons: **Send connection to TV**, **Open setup on TV** 
 
 ## Using it from automations and scripts
 
-Beyond triggers, you can call the integration's actions anywhere:
+**Recommended and tested with v1.0.5:** use the built-in `webostv.command` action. In Home Assistant -> Developer tools -> Actions, use this minimal YAML:
 
 ```yaml
-# Show the driveway camera bottom-left for 20 s when a car arrives
-action: lg_webos_pip.show
+action: webostv.command
 data:
-  camera: camera.driveway
-  position: bottom-left
-  size: 25
-  timeout: 20
-
-# Close it again, e.g. when the door opens
-action: lg_webos_pip.close
+  entity_id: media_player.your_lg_tv
+  command: system.launcher/launch
+  payload:
+    id: io.github.isdaddy.lgwebospip
+    params:
+      camera: camera.front_door
+      timeout: 10
 ```
 
-| Action | Fields |
-|---|---|
-| `lg_webos_pip.show` | `camera` or `url` (required), `title`, `mode`, `position`, `size`, `timeout`, `muted`, `tv` |
-| `lg_webos_pip.close` | `tv` |
-| `lg_webos_pip.send_connection` | `tv`: sends the URL and token from the integration options to the TV app |
+Replace `media_player.your_lg_tv` and `camera.front_door` with actual entity IDs. **Keep `entity_id` under `data:`, not `target:`**; the wrong placement produces an HA validation error on the tested configuration. The package filename may say `tixelcat`, but `payload.id` must match the current internal app ID `io.github.isdaddy.lgwebospip`.
 
-`tv` is only needed when you've set up more than one TV.
+Example doorbell automation using the same launch command:
+
+```yaml
+alias: "LG TV - doorbell camera PIP"
+triggers:
+  - trigger: state
+    entity_id: binary_sensor.front_doorbell
+    to: "on"
+conditions: []
+actions:
+  - action: webostv.command
+    data:
+      entity_id: media_player.your_lg_tv
+      command: system.launcher/launch
+      payload:
+        id: io.github.isdaddy.lgwebospip
+        params:
+          camera: camera.front_door
+          timeout: 30
+mode: restart
+```
+
+Replace the trigger sensor, TV and camera IDs. The direct launch has been verified with repeated manual requests; the complete doorbell automation is an **example**, not a separately verified end-to-end test.
+
+The optional custom `lg_webos_pip` integration also offers `lg_webos_pip.show`, `lg_webos_pip.close` and a trigger UI. Test its relaunch behavior before relying on it for an automation. See [INSTALLATION.md](INSTALLATION.md) for installation, screensaver limitations and troubleshooting.
 
 ### Sources
 
@@ -244,9 +202,8 @@ To launch the TV app another way (e.g. `webostv.command` directly, or `ares-laun
 
 ```yaml
 action: webostv.command
-target:
-  entity_id: media_player.lg_tv
 data:
+  entity_id: media_player.your_lg_tv
   command: system.launcher/launch
   payload:
     id: io.github.isdaddy.lgwebospip
