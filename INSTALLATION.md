@@ -2,7 +2,7 @@
 
 Enhanced LG webOS PIP fork by [tixelcat](https://github.com/tixelcat), based on the MIT-licensed [ISDaddy project](https://github.com/ISDaddy/ha-lg-webos-pip). This guide covers **version 1.0.6**, the dual-camera interface and the recommended saved-layout Home Assistant action.
 
-**Download:** [tixelcat GitHub Releases](https://github.com/tixelcat/ha-lg-webos-pip/releases) → **1.0.6** → Assets → **`io.github.tixelcat.lgwebospip_1.0.6_all.ipk`**. The file must be attached to the published release; until then use the locally verified 1.0.6 test IPK. Never rename the internal application ID just because the IPK filename says `tixelcat`.
+**Download:** [tixelcat GitHub Releases](https://github.com/tixelcat/ha-lg-webos-pip/releases) → **1.0.6** → Assets → **`io.github.tixelcat.lgwebospip_1.0.6_all.ipk`**.
 
 | Meaning | Value |
 | --- | --- |
@@ -32,7 +32,6 @@ Rooting can carry risks and may be unavailable on current firmware. If you don't
 ```powershell
 $TV_IP = '192.168.1.100'  # replace with your TV IP
 $IPK = Join-Path $HOME 'Downloads\io.github.tixelcat.lgwebospip_1.0.6_all.ipk'
-# Example alternative if you built the IPK locally:
 # $IPK = Join-Path $HOME 'Downloads\HA PIP WEBOS\Releases\1.0.6\io.github.tixelcat.lgwebospip_1.0.6_all.ipk'
 if (-not (Test-Path -LiteralPath $IPK)) { throw "IPK not found: $IPK" }
 scp "$IPK" "root@${TV_IP}:/tmp/home-assistant-pip-1.0.6.ipk"
