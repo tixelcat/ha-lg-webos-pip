@@ -15,6 +15,15 @@
     <div id="error" class="error hidden"></div>
   </div>
 
+  <!-- Optional second PIP. The original PIP and player stay unchanged. -->
+  <div id="pip2" class="pip secondary bottom-left hidden">
+    <video id="video2" playsinline class="hidden"></video>
+    <img id="frame2" class="hidden" alt="">
+    <div id="spinner2" class="spinner hidden"></div>
+    <div id="label2" class="label"></div>
+    <div id="error2" class="error hidden"></div>
+  </div>
+
   <!-- Setup screen: opened from the TV's app list. -->
   <section id="settings" class="settings hidden">
     <div class="panel">
@@ -37,12 +46,28 @@
         <span id="s-status" class="status"></span>
       </div>
 
-      <h2>Defaults <small>used when Home Assistant doesn't say otherwise</small></h2>
-      <div class="row choice" data-key="camera"><span class="name">Camera</span><span class="value"></span></div>
-      <div class="row choice" data-key="mode"><span class="name">Stream</span><span class="value"></span></div>
-      <div class="row choice" data-key="position"><span class="name">Position</span><span class="value"></span></div>
-      <div class="row choice" data-key="size"><span class="name">Size</span><span class="value"></span></div>
-      <div class="row choice" data-key="timeout"><span class="name">Close after</span><span class="value"></span></div>
+      <!-- Camera controls use the full TV width; the HA connection above is unchanged. -->
+      <div class="camera-grid">
+        <div class="camera-column" data-camera-panel="1">
+          <h2>Camera 1</h2>
+          <div class="row choice camera-toggle" data-key="enabled1"><span class="name">Show camera</span><span class="value"></span></div>
+          <div class="row choice" data-key="camera"><span class="name">Camera</span><span class="value"></span></div>
+          <div class="row choice" data-key="position"><span class="name">Position</span><span class="value"></span></div>
+          <div class="row choice" data-key="size"><span class="name">Size</span><span class="value"></span></div>
+        </div>
+        <div class="camera-column" data-camera-panel="2">
+          <h2>Camera 2 <small>optional</small></h2>
+          <div class="row choice camera-toggle" data-key="enabled2"><span class="name">Show camera</span><span class="value"></span></div>
+          <div class="row choice" data-key="camera2"><span class="name">Camera</span><span class="value"></span></div>
+          <div class="row choice" data-key="position2"><span class="name">Position</span><span class="value"></span></div>
+          <div class="row choice" data-key="size2"><span class="name">Size</span><span class="value"></span></div>
+        </div>
+      </div>
+
+      <div class="playback-grid">
+        <div class="row choice" data-key="mode"><span class="name">Stream</span><span class="value"></span></div>
+        <div class="row choice" data-key="timeout"><span class="name">Close after</span><span class="value"></span></div>
+      </div>
 
       <div class="row buttons actions">
         <button data-action="save" class="primary">Save</button>

@@ -1,20 +1,34 @@
 # Modifications — tixelcat
 
-Original project: [ISDaddy/ha-lg-webos-pip](https://github.com/ISDaddy/ha-lg-webos-pip) — MIT License, Copyright (c) 2026 ISDaddy.
+Original project: [ISDaddy/ha-lg-webos-pip](https://github.com/ISDaddy/ha-lg-webos-pip), © 2026 ISDaddy, MIT License. Modifications by [tixelcat](https://github.com/tixelcat) in 2026; this is an unofficial community fork.
 
-Modified by **tixelcat** in 2026. These changes are not an official release of the original project.
+## TV application 1.0.4
 
-## TV application (1.0.4)
-- Better overlay lifecycle, close/relaunch cleanup and MJPEG media handling (based on previous 1.0.1 changes).
-- Suppress splash/spinner during overlay launch.
-- Attempt to wake a screensaver before showing camera using the privileged Homebrew Channel service on rooted TVs; retry after 450 and 1300 ms; cancel pending retries when closing.
-- Fallback attempt to call the standard webOS tvpower service when the privileged call fails.
-- Set visible app name to **Home Assistant PIP**. Keep original application ID and integration compatibility.
+- Improved overlay lifecycle and reliable close/relaunch, cleanup and remote-control recovery.
+- Improved MJPEG media cleanup, suppressed launch splash/loading spinner.
+- Added best-effort screensaver wake when a camera notification appears, with a Homebrew privileged service path on rooted TVs, two short retries, cancellation on close, and standard webOS fallback.
+- Kept internal app ID `io.github.isdaddy.lgwebospip` and original license/attribution.
 
-## Compatibility
-- Rooted Homebrew TV: root wake approach tested by the modifier on one TV.
-- Non-root Developer Mode TV: overlay is supported upstream, but root wake cannot work; direct fallback is best-effort, not proven to dismiss the screensaver.
-- Keep Home Assistant integration from upstream unchanged. No guarantee of interoperability on all firmware.
+## TV application 1.0.5
 
-## License
-Retain original MIT license and copyright ISDaddy. Modified portions attributed to tixelcat.
+- Added updated Home Assistant PIP icons.
+- Reduced MJPEG first-frame polling from 100 ms to 50 ms without experimental animations or reconnect changes.
+- Preserved stable overlay and remote-control behavior confirmed during repeated user tests.
+- Updated direct Home Assistant `webostv.command` examples and installation documentation.
+
+## TV application 1.0.6
+
+- Added two independent camera windows and two independent media players sharing one Home Assistant connection.
+- Preserved the existing HA URL, token, connection test and camera discovery flow.
+- Added an On/Off switch for each saved camera; sources and positions are retained while disabled. Both Off exits without displaying a saved PIP.
+- Four corners per camera with prevention of duplicate active corner assignments.
+- Camera sizes restricted to 10%, 20%, 30%, 40%, 50% of screen width; same percentage yields equal-size 16:9 dual windows, with contained streams preserving their source aspect ratios.
+- Reorganized the TV setup menu: HA configuration above, two camera columns side by side, Save/Preview/Exit below.
+- Added `show_saved: true` launch handling that reads settings stored in the TV app, including close-after timeout; no camera/size/position/timeout fields required in HA.
+- Added optional `title` handling for a saved-layout launch (displayed on the first active camera).
+- Preserved explicit `camera:` launches and the original TV app ID `io.github.isdaddy.lgwebospip` for existing automations.
+- Tested the above changes on a real LG TV; see [README.md](README.md) for scope and limitations.
+
+## Compatibility and licensing
+
+Features beyond the original project may behave differently across webOS generations and firmware. Root-dependent screensaver wake requires compatible Homebrew services. All upstream license and copyright notices must remain; no official affiliation with LG or Home Assistant is implied.

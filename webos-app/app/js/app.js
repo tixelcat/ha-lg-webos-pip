@@ -5,7 +5,7 @@
  * See MODIFICATIONS.md and LICENSE for attribution.
  */
 /*
- * Home Assistant PIP: shows one Home Assistant camera (or any video URL) in a small box
+ * Home Assistant PIP: shows one camera or two saved Home Assistant cameras over TV
  * over whatever the TV is playing, then closes itself.
  *
  * Launch params (sent by the Home Assistant integration via
@@ -15,6 +15,7 @@
  *   {close: true}                     hide the PIP
  *   {connect: {url, token}}           store the HA connection on the TV
  *                                     (may be combined with a camera)
+ *   {show_saved: true, timeout}        show one or two cameras saved in the TV menu
  *   {} / {settings: true}             open the setup screen (app list launch)
  */
 (function () {
@@ -32,12 +33,19 @@
   var errorBox = document.getElementById('error');
   var spinner = document.getElementById('spinner');
   var video = document.getElementById('video');
+  var pip2 = document.getElementById('pip2');
+  var label2 = document.getElementById('label2');
+  var errorBox2 = document.getElementById('error2');
+  var spinner2 = document.getElementById('spinner2');
+  var video2 = document.getElementById('video2');
   var toast = document.getElementById('toast');
 
   var ha = null;
   var haKey = '';          // url|token the current client was made for
+  var haPromise = null;    // one connection shared by both cameras, even during auth
   var closeTimer = null;
   var retryTimer = null;
+  var retryTimer2 = null;
   var toastTimer = null;
   var showId = 0;          // bumped per show()/closePip() so stale retries stop
   var returnToSettings = false;
@@ -47,11 +55,28 @@
 
   var player = new Player(video, document.getElementById('frame'), function (state, info) {
     spinner.classList.toggle('hidden', state !== 'loading');
-    // Size the box to the feed (e.g. 4:3 doorbells) instead of letterboxing in 16:9.
-    if (state === 'playing' && info.width && info.height) {
+    // A lone camera keeps its original feed aspect ratio (1.0.5 behavior).
+    // In dual-camera mode both windows must keep the same 16:9 box geometry,
+    // regardless of their source resolutions or first-frame arrival order.
+    if (state === 'playing' && info && info.width && info.height &&
+        pip2.classList.contains('hidden')) {
       pip.style.aspectRatio = info.width + ' / ' + info.height;
     }
   });
+
+  var player2 = new Player(video2, document.getElementById('frame2'), function (state, info) {
+    spinner2.classList.toggle('hidden', state !== 'loading');
+    // Camera 2 only runs in dual-camera mode: use the shared 16:9 frame.
+    // The media itself is contained without stretching or cropping.
+  });
+
+  function stopSecond() {
+    clearTimeout(retryTimer2);
+    retryTimer2 = null;
+    player2.stop();
+    pip2.classList.add('hidden');
+    pip2.classList.remove('closing', 'fill');
+  }
 
   // ---------- launch params ----------
 
@@ -103,6 +128,10 @@
       Settings.close();
       returnToSettings = false;
       show(params, Store.get());
+    } else if (params.show_saved === true || params.show_saved === 'true') {
+      Settings.close();
+      returnToSettings = false;
+      showSaved(params, Store.get());
     } else if (params.connect) {
       if (Settings.isOpen()) {
         openSettings(); // reload the form with the pushed connection
@@ -119,16 +148,25 @@
 
   function connectHA(conn) {
     var key = conn.url + '|' + conn.token;
-    if (ha && ha.connected && haKey === key) return Promise.resolve(ha);
     if (!conn.url || !conn.token) {
       var err = new Error('Not set up yet: open Home Assistant PIP from the TV\'s app list, or add the access token in the Home Assistant integration.');
       err.fatal = true;
       return Promise.reject(err);
     }
+    if (ha && haKey === key && ha.connected) return Promise.resolve(ha);
+    if (ha && haKey === key && haPromise) return haPromise;
     if (ha) ha.close();
-    ha = new HAClient(conn.url, conn.token);
+    var client = new HAClient(conn.url, conn.token);
+    ha = client;
     haKey = key;
-    return ha.connect().then(function () { return ha; });
+    haPromise = client.connect().then(function () {
+      if (ha === client) haPromise = null;
+      return client;
+    }, function (err) {
+      if (ha === client) haPromise = null;
+      throw err;
+    });
+    return haPromise;
   }
 
   // ---------- Screensaver wake via Homebrew root service ----------
@@ -214,6 +252,7 @@
     // Wake first so an existing screensaver does not cover the PIP.
     scheduleScreensaverWake(id);
     player.stop();
+    stopSecond();
     preparePip(opts);
     video.muted = opts.muted;
     label.textContent = opts.title;
@@ -223,6 +262,79 @@
       return;
     }
     attempt(id, opts, { url: settings.url, token: settings.token });
+  }
+
+  // Saved layout: launch ONLY the camera slots enabled on the television.
+  // An explicit legacy {camera: ...} launch is intentionally unaffected.
+  function showSaved(params, settings) {
+    var timeout = params.timeout !== undefined ? params.timeout : settings.timeout;
+    // Absent flags from older saved configurations mean enabled, for upgrades.
+    var first = settings.enabled1 !== false && settings.enabled1 !== 'false' && !!settings.camera;
+    var second = settings.enabled2 !== false && settings.enabled2 !== 'false' && !!settings.camera2;
+
+    // Both disabled (or without a selected source): do not show an error PIP.
+    // HA launch can still foreground the app; release it immediately.
+    if (!first && !second) {
+      exitApp();
+      return;
+    }
+
+    if (!first && second) {
+      // Camera 2 works on its own in the original primary renderer: aspect
+      // ratio, remote-control focus and close behavior stay exactly as 1.0.5.
+      show({ camera: settings.camera2, title: params.title || '', mode: settings.mode,
+        position: settings.position2 || 'bottom-left',
+        size: Math.min(50, Math.max(10, Number(settings.size2) || 30)),
+        timeout: timeout }, settings);
+      return;
+    }
+
+    show({ camera: settings.camera, title: params.title || '', mode: settings.mode, position: settings.position,
+      size: Math.min(50, Math.max(10, Number(settings.size) || 30)),
+      timeout: timeout }, settings);
+    if (!second) return;
+
+    var opts = resolve({ camera: settings.camera2, mode: settings.mode,
+      position: settings.position2 || 'bottom-left',
+      size: Math.min(50, Math.max(10, Number(settings.size2) || 30)),
+      timeout: timeout }, settings);
+    if (opts.position === settings.position) {
+      showToast('Camera 2 needs a different corner');
+      return;
+    }
+    pip2.classList.remove('hidden', 'closing');
+    POSITIONS.forEach(function (p) { pip2.classList.toggle(p, p === opts.position); });
+    pip2.style.setProperty('--size', opts.size);
+    pip2.style.aspectRatio = '';
+    // Multi-camera uses a full transparent overlay; never fill the TV.
+    pip.classList.remove('fill');
+    video2.muted = true;
+    label2.textContent = '';
+    errorBox2.classList.add('hidden');
+    attemptSecond(showId, opts, { url: settings.url, token: settings.token });
+  }
+
+  // A failing second stream must never stop or restart the first stream.
+  function attemptSecond(id, opts, conn) {
+    connectHA(conn).then(function (client) {
+      if (id !== showId) return;
+      if (!label2.textContent && opts.camera) {
+        client.friendlyName(opts.camera).then(function (name) {
+          if (id === showId && !label2.textContent) label2.textContent = name;
+        }, function () {});
+      }
+      return player2.play(client, opts).then(function () {
+        if (id === showId) errorBox2.classList.add('hidden');
+      });
+    }).catch(function (err) {
+      if (id !== showId) return;
+      spinner2.classList.add('hidden');
+      errorBox2.textContent = (err.message || String(err)) + (err.fatal ? '' : ' (retrying...)');
+      errorBox2.classList.remove('hidden');
+      if (!err.fatal) retryTimer2 = setTimeout(function () {
+        attemptSecond(id, opts, conn);
+      }, RETRY_DELAY);
+    });
   }
 
   /** HA or the camera can take a while to respond, so keep retrying while the PIP is open. */
@@ -245,6 +357,7 @@
   /** A text-only PIP, e.g. after Home Assistant pushed the connection settings. */
   function notice(text, seconds) {
     showId++;
+    stopSecond();
     player.stop();
     var s = Store.get();
     preparePip(resolve({ timeout: seconds }, s));
@@ -268,11 +381,15 @@
     // Release the stream immediately rather than leaving its renderer active
     // during the closing animation.
     player.stop();
+    clearTimeout(retryTimer2);
+    player2.stop();
+    pip2.classList.add('closing');
     pip.classList.add('closing');
     closeAnimationTimer = setTimeout(function () {
       if (closingId !== showId) return; // A new doorbell launch superseded close.
       pipVisible = false;
       pip.classList.add('hidden');
+      pip2.classList.add('hidden');
       if (returnToSettings) {
         returnToSettings = false;
         exitRequested = false;
@@ -304,6 +421,7 @@
     pipVisible = false;
     clearTimeout(closeTimer);
     clearTimeout(retryTimer);
+    stopSecond();
     player.stop();
     pip.classList.add('hidden');
     Settings.open({
@@ -311,10 +429,14 @@
       toast: showToast,
       onExit: exitApp,
       onPreview: function (draft) {
+        if (!(draft.enabled1 && draft.camera) && !(draft.enabled2 && draft.camera2)) {
+          showToast('Enable and select at least one camera to preview');
+          return;
+        }
         Settings.hide();
         returnToSettings = true;
         // Preview uses the unsaved draft, connection included.
-        show({ camera: draft.camera, timeout: draft.timeout || 15, title: 'Preview: OK or Back to return' }, draft);
+        showSaved({ show_saved: true, timeout: draft.timeout || 15 }, draft);
       }
     });
   }
@@ -332,11 +454,13 @@
     clearTimeout(retryTimer);
     clearTimeout(closeAnimationTimer);
     pipVisible = false;
+    stopSecond();
     player.stop();
     Settings.close();
     if (ha) ha.close();
     ha = null;
     haKey = '';
+    haPromise = null;
     // Close the actual webOS overlay app, not merely its DOM contents.
     // Focus restoration after closing is owned by webOS, not JavaScript.
     try {

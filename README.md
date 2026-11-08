@@ -1,142 +1,80 @@
-
 [![Download Latest Release](https://img.shields.io/badge/Download-Latest%20IPK-blue?style=for-the-badge&logo=github)](https://github.com/tixelcat/ha-lg-webos-pip/releases/latest)
 
-# LG webOS PIP for Home Assistant
+# Home Assistant PIP for LG webOS TVs
 
-Show a Home Assistant camera, or any video feed, as a **small picture-in-picture box on your LG TV**, on top of whatever you're watching: live TV, HDMI, Netflix, the home screen. Typical use: someone rings the doorbell and the door camera appears in the corner of the TV for 30 seconds.
+**Version 1.0.6 — dual-camera overlay, configured on the TV.** Show one or two Home Assistant camera streams in separate corners above the existing LG TV picture. Camera selection, size, position, enable/disable state and auto-close time are configured directly in the TV app; Home Assistant can trigger the saved layout with one simple action.
 
+![Two camera PIP windows on LG webOS TV - CAM1 and CAM2](docs/images/dual-camera-preview.webp)
+
+*Concept illustration. Select each camera, corner, size (10%-50%), and On/Off state in the TV app.*
+
+**Downloads:** [GitHub Releases](https://github.com/tixelcat/ha-lg-webos-pip/releases) → select **1.0.6** → Assets → `io.github.tixelcat.lgwebospip_1.0.6_all.ipk` (once published). For installation, configuration and troubleshooting, see **[INSTALLATION.md](INSTALLATION.md)**.
+
+> **App ID and filename are intentionally different.** The downloadable IPK is branded `tixelcat`, but the *internal* webOS ID is still **`io.github.isdaddy.lgwebospip`**. Use the internal ID in `webostv.command` and `luna-send`. This preserves existing installations and Home Assistant automations.
+
+## What's new in 1.0.6
+
+- **Two independent camera slots:** select Camera 1 and Camera 2 from the camera list retrieved from Home Assistant. A single HA connection and existing **Test connection** button are reused.
+- **Separate On/Off switches:** turn either camera off with one click, or turn both off. The source, corner and size selections remain saved. If both are Off, `show_saved` exits without displaying a PIP.
+- **Four selectable corners:** top left, top right, bottom left, bottom right. When two cameras are enabled and selected, the same corner cannot be assigned to both; switching one off frees its corner.
+- **Separate sizes:** **10%, 20%, 30%, 40% or 50% of TV width** for each camera. Equal sizes give **equal-width, equal-height 16:9 windows** in dual-camera mode; differing camera aspect ratios are fitted without stretching.
+- **Widescreen menu:** Home Assistant configuration on top, Camera 1 on the left, Camera 2 on the right, and **Save / Preview / Exit** at the bottom.
+- **Saved-layout launch:** `show_saved: true` displays the enabled cameras using the TV's saved settings, including **Close after**. No `camera`, `position`, `size`, or `timeout` is needed in this action.
+- **Optional title:** a `title` passed with `show_saved` is shown on the primary active overlay (or Camera 2 if Camera 1 is disabled).
+- **Backward compatibility:** an existing automation with an explicit `camera:` still opens that single camera; legacy commands do not depend on the new On/Off switches.
+
+## Quick start
+
+1. Install **Home Assistant PIP 1.0.6** on your LG TV using the IPK from the release (rooted/Homebrew SSH or Developer Mode — see [INSTALLATION.md](INSTALLATION.md)).
+2. Make sure the TV is paired with Home Assistant's **built-in LG webOS TV integration**.
+3. Open **Home Assistant PIP** in the TV app list. Enter the Home Assistant URL and a long-lived access token; select **Test connection** to load available cameras.
+4. Choose a camera in either column, set its corner and size, set **Show camera** to On or Off, choose the global **Stream** mode and **Close after** time; press **Save**. **Preview** shows the current choices before or after saving.
+5. In Home Assistant → **Developer tools → Actions**, launch the saved TV layout with the action below.
+
+### Recommended: launch the cameras saved on the TV
+
+```yaml
+action: webostv.command
+data:
+  entity_id: media_player.your_lg_tv
+  command: system.launcher/launch
+  payload:
+    id: io.github.isdaddy.lgwebospip
+    params:
+      show_saved: true
 ```
-┌──────────────────────────────────────────┐
-│ live TV / HDMI / any app   ┌───────────┐ │
-│                            │  camera   │ │
-│                            │ Doorbell  │ │
-│                            └───────────┘ │
-└──────────────────────────────────────────┘
+
+This exact form was **confirmed working on a real LG TV** with 1.0.6. Replace `media_player.your_lg_tv` with your actual entity ID. The TV decides **which cameras**, **where**, **how large** and **for how long**; `params.show_saved: true` is enough. Do not add a size or timeout just to reproduce the saved TV configuration.
+
+### Doorbell example (optional title)
+
+```yaml
+alias: "LG TV - doorbell live cameras"
+description: "Show the saved TV camera layout when someone rings"
+triggers:
+  - trigger: state
+    entity_id: binary_sensor.front_doorbell
+    from: "off"
+    to: "on"
+conditions: []
+actions:
+  - action: webostv.command
+    data:
+      entity_id: media_player.your_lg_tv
+      command: system.launcher/launch
+      payload:
+        id: io.github.isdaddy.lgwebospip
+        params:
+          show_saved: true
+          title: "🔔 Someone is at the door!"
+mode: restart
 ```
 
-The repository has two parts that work together:
+Replace the example doorbell and TV entity IDs. The sensor must actually change from `off` to `on`. The `title` is optional; it does not control the cameras' positions or sizes.
 
-| Part | Where | What it does |
-|---|---|---|
-| **HA PIP** TV app | [`webos-app/`](webos-app) | A webOS app that opens as a transparent overlay window and draws the PIP box. It has its own setup screen for the HA connection and defaults. |
-| **LG webOS PIP** integration | [`custom_components/lg_webos_pip/`](custom_components/lg_webos_pip) | A Home Assistant integration with a UI for choosing *what* to show, *when* (triggers), *where* and *for how long*. It launches the TV app through HA's built-in LG webOS TV integration. |
+### Backward-compatible: show one specified camera
 
-Verified on an LG OLED G4 (webOS 24, firmware 43.21.73) in Developer Mode, without rooting.
-## Recommended setup: Rooted LG webOS + Homebrew Channel
-
-For the best experience with Home Assistant PIP, consider using a rooted LG webOS TV with [Homebrew Channel](https://github.com/webosbrew/webos-homebrew-channel).
-
-Root access is **optional**, but it enables additional features that are not always available through standard Developer Mode.
-
-### Benefits of a rooted LG TV
-
-- **Screensaver wake-up:** Automatically attempt to dismiss the active screensaver when a camera notification is displayed.
-- **Homebrew Channel:** Manage homebrew applications and updates.
-- **SSH access:** Install, update and troubleshoot applications directly on the TV.
-- **Extended system access:** Access additional webOS services for advanced automation.
-
-### How to root your LG TV
-
-Before attempting to root your television, check compatibility and available methods:
-
-- [Check TV compatibility – CanI.RootMy.TV](https://cani.rootmy.tv/)
-- [RootMy.TV](https://rootmy.tv/)
-- [webOS Homebrew – Rooting Guide](https://www.webosbrew.org/rooting/)
-- [Homebrew Channel on GitHub](https://github.com/webosbrew/webos-homebrew-channel)
-
-**Important:** RootMy.TV exploits have been patched on many newer firmware versions. Rooting is not supported by LG, may affect warranty coverage and carries a risk of damaging the television. Always check model and firmware compatibility before proceeding.
-
-### Non-rooted televisions
-
-Home Assistant PIP can also be installed using LG Developer Mode without root access.
-
-Basic camera overlay functionality is supported on compatible devices. However, enhanced screensaver wake-up and other root-dependent features may be unavailable.
-
-**Recommendation:** Use Homebrew Channel on a supported rooted TV when advanced automation and screensaver wake-up are important. Developer Mode remains an alternative for users who do not want to root their television.
-
----
-
-**Original project:** [ISDaddy/ha-lg-webos-pip](https://github.com/ISDaddy/ha-lg-webos-pip)
-
-**Enhanced fork and modifications:** [tixelcat](https://github.com/tixelcat)
-
-**License:** MIT – original copyright notices and license terms retained.
-
-## How it works
-
-1. A trigger fires in Home Assistant, e.g. the doorbell's binary sensor turns `on`.
-2. Home Assistant calls `webostv.command` -> `system.launcher/launch` with the TV app ID and camera/timeout parameters (directly or through the optional custom integration).
-3. The app opens as an **overlay window** (`"defaultWindowType": "overlay"`, `"transparent": true`). Only the PIP box is visible over the current picture.
-4. The app connects to Home Assistant's WebSocket API with a long-lived token and asks HA for a signed stream URL. MJPEG by default; HLS, WebRTC and snapshots are also available.
-5. After the timeout, or when you press **Back** / **OK**, the app closes and the TV is exactly as before.
-
-## Requirements
-
-- An LG webOS TV with the **LG webOS TV** integration set up in Home Assistant. Tested: G4 / webOS 24. Older webOS versions may work, untested.
-- Home Assistant **2025.3** or newer.
-- To install the TV app, use compatible **rooted/Homebrew SSH** or **Developer Mode** as described in [INSTALLATION.md](INSTALLATION.md).
-- A computer with Node.js 18+ for the webOS CLI.
-
-## Setup
-
-### 1. Install the TV app
-
-Choose a rooted/Homebrew SSH installation or an LG Developer Mode installation. See the complete, version-specific [INSTALLATION.md](INSTALLATION.md), including working PowerShell/SCP and TV-side commands.
-
-**v1.0.5 installer filename:** `io.github.tixelcat.lgwebospip_1.0.5_all.ipk` (available from the v1.0.5-tixelcat GitHub release). The filename uses **tixelcat**, but the internal app ID remains **`io.github.isdaddy.lgwebospip`** for compatibility with existing integrations and TV installations.
-
-Download the asset from the [tixelcat releases page](https://github.com/tixelcat/ha-lg-webos-pip/releases/latest) for v1.0.5-tixelcat.
-
-### 2. Connect the TV app to Home Assistant
-
-The app needs your HA URL and a long-lived access token. Create the token in HA under **your profile → Security → Long-lived access tokens**. A dedicated non-admin HA user for the TV is a good idea. Then do **one** of the following:
-
-- **From Home Assistant (easiest):** enter the URL and token in the integration (step 3). HA sends them to the TV app, and you never type the token with the remote.
-- **On the TV:** open **HA PIP** from the TV's app list. The setup screen appears:
-
-  | Setting | |
-  |---|---|
-  | Home Assistant URL | e.g. `http://192.168.1.10:8123` (use an IP if the TV can't resolve `homeassistant.local`) |
-  | Long-lived access token | Type it with the on-screen keyboard. The **LG ThinQ** phone app's keyboard can paste it from your phone. |
-  | Test connection | Shows the HA version, the user and how many cameras were found |
-  | Camera, Stream, Position, Size, Close after | Defaults, used when HA doesn't say otherwise |
-  | Preview | Shows the PIP with the current (unsaved) settings. **OK** or **Back** returns to setup. |
-
-  Navigate with **▲▼**, change choices with **◀▶**, press **OK** to type in a field or press a button. The Magic Remote pointer also works. Press **Save** before exiting.
-
-### 3. Install the Home Assistant integration (optional)
-
-For the **recommended `webostv.command` launch**, you need only Home Assistant's **built-in LG webOS TV** integration paired with your TV. The custom **LG webOS PIP** integration is optional.
-
-For its additional UI and trigger management, add `https://github.com/tixelcat/ha-lg-webos-pip` to HACS as a custom Integration, install **LG webOS PIP**, and restart Home Assistant. Or copy `custom_components/lg_webos_pip` to `/config/custom_components/lg_webos_pip` and restart. In Settings -> Devices & services, add **LG webOS PIP** and configure the TV/connection settings.
-
-**Compatibility note:** In one tested environment `lg_webos_pip.show` did not relaunch reliably, whereas repeated direct `webostv.command` launches succeeded over IPTV and YouTube. Start with the direct method below.
-
-### 4. Add PIP triggers
-
-On the integration page, click **Add PIP trigger**. Each trigger says *when X happens, show Y*:
-
-| Field | |
-|---|---|
-| Name | e.g. `Doorbell` |
-| Trigger entities | one or more entities, e.g. `binary_sensor.doorbell` or `event.doorbell_ring` |
-| Trigger state | optional. Empty means binary sensors, switches and input booleans fire on `on`, and everything else (e.g. **event entities**) fires on every change. Set it to fire on a specific state, like `open`. |
-| Camera *or* URL | what to show (see [Sources](#sources)) |
-| Label, stream type, position, size, close after | optional per-trigger overrides |
-
-Each trigger gets its own device with:
-- **Enabled**, a switch to pause the trigger, e.g. at night.
-- **Test**, a button that shows the PIP now.
-
-Edit a trigger later with its **⋮ → Reconfigure** menu.
-
-**Nothing is ever sent to a TV that is off.** Triggers and the `show` / `close` actions skip quietly, so automations don't fail. Buttons report that the TV is off.
-
-The TV also gets three buttons: **Send connection to TV**, **Open setup on TV** and **Close PIP**.
-
-## Using it from automations and scripts
-
-**Recommended and tested with v1.0.5:** use the built-in `webostv.command` action. In Home Assistant -> Developer tools -> Actions, use this minimal YAML:
+Existing 1.0.5-style automations remain supported:
 
 ```yaml
 action: webostv.command
@@ -150,122 +88,38 @@ data:
       timeout: 10
 ```
 
-Replace `media_player.your_lg_tv` and `camera.front_door` with actual entity IDs. **Keep `entity_id` under `data:`, not `target:`**; the wrong placement produces an HA validation error on the tested configuration. The package filename may say `tixelcat`, but `payload.id` must match the current internal app ID `io.github.isdaddy.lgwebospip`.
+An explicit `camera:` **takes priority** over the TV's saved camera choices and shows a single camera. That launch is independent of both saved-camera On/Off switches. When using `show_saved`, omit `timeout` if the app's **Close after** setting should apply; `timeout` can still override it deliberately.
 
-Example doorbell automation using the same launch command:
+## What happens when cameras are switched off?
 
-```yaml
-alias: "LG TV - doorbell camera PIP"
-triggers:
-  - trigger: state
-    entity_id: binary_sensor.front_doorbell
-    to: "on"
-conditions: []
-actions:
-  - action: webostv.command
-    data:
-      entity_id: media_player.your_lg_tv
-      command: system.launcher/launch
-      payload:
-        id: io.github.isdaddy.lgwebospip
-        params:
-          camera: camera.front_door
-          timeout: 30
-mode: restart
-```
+| Camera 1 | Camera 2 | `show_saved: true` result |
+| --- | --- | --- |
+| On | On | Two overlays in different corners (when both sources are selected) |
+| On | Off | Camera 1 only |
+| Off | On | Camera 2 only |
+| Off | Off | No camera overlay; the TV app closes |
 
-Replace the trigger sensor, TV and camera IDs. The direct launch has been verified with repeated manual requests; the complete doorbell automation is an **example**, not a separately verified end-to-end test.
+A camera with **no selected source** is not displayed, even when its switch is On. Switching a camera off does not erase its camera selection, position or size.
 
-The optional custom `lg_webos_pip` integration also offers `lg_webos_pip.show`, `lg_webos_pip.close` and a trigger UI. Test its relaunch behavior before relying on it for an automation. See [INSTALLATION.md](INSTALLATION.md) for installation, screensaver limitations and troubleshooting.
+## Components and compatibility
 
-### Sources
+| Component | Role |
+| --- | --- |
+| [`webos-app/`](webos-app/) | webOS TV overlay app, camera settings and playback |
+| Built-in LG webOS TV integration | Provides the recommended `webostv.command` action |
+| [`custom_components/lg_webos_pip/`](custom_components/lg_webos_pip/) | Optional custom HA integration retained for compatibility; not required for the recommended saved-layout action |
 
-- **Camera entity**: any HA camera. HA signs the stream URLs, so the token never appears in a URL.
-- **URL**:
-  - `.m3u8` plays as HLS.
-  - URLs that look like MJPEG (`mjpeg`, `.cgi`, `action=stream`) or images display as an image stream.
-  - Anything else plays in a video player, e.g. `.mp4`.
-  - HA paths such as `/media/local/doorbell.mp4` are signed automatically.
+**Tested:** both-camera playback, saved settings, one/both camera switches, positions, 10% increments, equal-size dual windows, old single-camera launch, the optional title, and the saved-camera Home Assistant action on one rooted LG webOS TV. The existing overlay behavior over live TV/IPTV/YouTube and remote-control handling was preserved during user testing. Compatibility with other models, firmware and protected-content apps is not guaranteed. MJPEG is recommended for overlays over ongoing TV playback; HLS/WebRTC can have device-specific limitations. Rooted Homebrew screensaver wake is best effort and requires compatible services; root is not required for basic PIP.
 
-### Stream types
+**Security:** do not commit or publish Home Assistant access tokens, `.env` files, TV storage backups, personal IP addresses or an IPK containing a baked-in token. For a reproducible public build, build without `HA_URL`, `HA_TOKEN` or `HA_CAMERA` environment variables. Keep any camera-access token private.
 
-| Type | Notes |
-|---|---|
-| `mjpeg` (default) | Drawn as an image, so it works over live TV without a second video decoder. HA converts the stream, which costs some HA CPU. Verified on the G4. |
-| `snapshot` | Polls still images (2 per second by default). Works with every camera. |
-| `hls` | Real video with audio, a few seconds behind. Needs a second hardware decoder while the TV plays something, which depends on the model and content. |
-| `webrtc` | Lowest latency (HA 2024.11+ with go2rtc). Same decoder caveat as HLS. |
+## Upgrading and development
 
-## Launch parameters (advanced)
+- **1.0.5 → 1.0.6:** install over the existing app, retaining the legacy internal app ID. Reopen the TV settings, select Camera 2 if desired, set each switch and corner, and press **Save**. Previously stored connection and camera 1 settings remain compatible; camera sizes available in the menu are now rounded to 10% steps.
+- **Build locally:** in `webos-app`, run `npm ci`, `npm run build`, then `ares-package build -o dist`. Do not package the raw `app/` directory without building first. See [INSTALLATION.md](INSTALLATION.md) for complete instructions.
+- **Release numbering:** version numbers are written **without a leading `v`**: `1.0.6`, matching the project's naming convention. The installer filename remains `io.github.tixelcat.lgwebospip_1.0.6_all.ipk`.
+- **Changes:** see [MODIFICATIONS.md](MODIFICATIONS.md) and [release notes](RELEASE_NOTES_1.0.6.md).
 
-To launch the TV app another way (e.g. `webostv.command` directly, or `ares-launch`), these are its parameters:
+## Credits / license
 
-```yaml
-action: webostv.command
-data:
-  entity_id: media_player.your_lg_tv
-  command: system.launcher/launch
-  payload:
-    id: io.github.isdaddy.lgwebospip
-    params:
-      camera: camera.front_door
-      timeout: 30
-```
-
-| Param | Meaning |
-|---|---|
-| `camera` / `url` | what to show (`url` wins) |
-| `title` | label in the box (default: camera name) |
-| `mode` | `mjpeg`, `snapshot`, `hls`, `webrtc` |
-| `position` | `top-right`, `top-left`, `bottom-right`, `bottom-left` |
-| `size` | width in % of the screen (10–100) |
-| `timeout` | seconds until it closes, `0` = until closed |
-| `muted` | `false` to play audio (HLS, WebRTC, video URLs) |
-| `refresh` | ms between stills in `snapshot` mode (default 500) |
-| `close: true` | close the PIP |
-| `connect: {url, token}` | store the HA connection on the TV |
-| `settings: true` (or no params) | open the setup screen |
-
-Launching again while the PIP is open swaps the feed and restarts the timer.
-
-## Good to know
-
-- **While the PIP is visible it has the remote's focus.** Arrow keys go to the PIP rather than the app underneath, and **Back** or **OK** close it. Keep timeouts short for popups.
-- If HA or the camera doesn't answer, the PIP shows the error and retries every 3 s until it times out.
-- The token is stored in the TV app's local storage, and in the integration's options if you entered it there.
-
-## Troubleshooting
-
-| Problem | Fix |
-|---|---|
-| Nothing happens on a trigger | Check the trigger's **Enabled** switch and that the TV's media player is `on`, then press the trigger's **Test** button. Look in **Settings → System → Logs** for `lg_webos_pip`. |
-| "The LG webOS TV integration is not set up" | Set up HA's LG webOS TV integration and make sure the TV is paired. |
-| PIP shows "Not set up yet" | Enter the URL and token in the integration and press **Send connection to TV**, or use the TV setup screen. |
-| "Authentication failed" | The token was deleted or mistyped. Create a new one. |
-| Black box, spinner forever | Try `mode: snapshot`. Check that the TV can reach the HA URL (not `homeassistant.local` unless the TV resolves it). |
-| App vanished from the TV | The Developer Mode session expired. Extend it and reinstall the app. |
-| `ares-novacom --getkey` fails | Turn **Key Server** on in the Developer Mode app. |
-
-## Development
-
-```bash
-# TV app: run against a fake Home Assistant in a desktop browser
-cd webos-app && npm install
-npm run mock                  # then open http://localhost:8124/tv.html
-                              #   ?camera=camera.garden&mode=hls  -> PIP
-                              #   (no params)                     -> setup screen
-npm run install-tv            # build, package and install on the TV registered as "tv"
-npm run inspect               # Chrome DevTools for the app on the TV
-cp .env.example .env          # optional: bake defaults into your own build (never publish it)
-
-# Integration
-python3 -m venv .venv && .venv/bin/pip install -r requirements_test.txt
-.venv/bin/pytest
-python3 scripts/gen_translations.py   # after editing strings.json
-```
-
-Releases: publishing a GitHub release builds the IPK, with the version taken from the tag, and attaches it to the release.
-
-## License
-
-MIT
+Enhanced community fork maintained by [tixelcat](https://github.com/tixelcat), based on the original [ISDaddy/ha-lg-webos-pip](https://github.com/ISDaddy/ha-lg-webos-pip) project by [ISDaddy](https://github.com/ISDaddy). **MIT License**; preserve the upstream copyright and notices. Not affiliated with LG or Home Assistant.

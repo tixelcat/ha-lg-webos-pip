@@ -103,7 +103,7 @@
       var timer = setInterval(function () {
         if (gen !== self.gen) { clearInterval(timer); return; }
         if (img.naturalWidth > 0) { clearInterval(timer); resolve(); }
-      }, 50);
+      }, 100);
       self.cleanup.push(function () { clearInterval(timer); img.onerror = null; });
     });
   };

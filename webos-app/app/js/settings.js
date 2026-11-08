@@ -20,12 +20,48 @@
       ['bottom-right', 'Bottom right'],
       ['bottom-left', 'Bottom left']
     ],
-    size: [10, 15, 20, 25, 30, 35, 40, 50, 60].map(function (n) { return [n, n + ' % of screen width']; }),
+    size: (function () {
+      var opts = [];
+      for (var n = 10; n <= 50; n += 10) opts.push([n, n + ' % of screen width']);
+      return opts;
+    })(),
     timeout: [0, 10, 15, 20, 30, 45, 60, 90, 120, 180, 300].map(function (n) {
       return [n, n === 0 ? 'Never (close with Back)' : n + ' seconds'];
     }),
-    camera: [['', 'None (Home Assistant always chooses)']]
+    camera: [['', 'None (Home Assistant always chooses)']],
+    camera2: [['', 'None (select a camera)']],
+    enabled1: [[true, 'On'], [false, 'Off']],
+    enabled2: [[true, 'On'], [false, 'Off']]
   };
+  CHOICES.position2 = CHOICES.position;
+  CHOICES.size2 = CHOICES.size;
+
+  function roundedSize(value, fallback) {
+    var n = Number(value);
+    if (!isFinite(n) || n <= 0) n = fallback;
+    return Math.max(10, Math.min(50, Math.round(n / 10) * 10));
+  }
+
+  // Each configured camera owns exactly one corner. The other camera cannot
+  // cycle to it. A disabled Camera 2 does not reserve its own corner.
+  function optionsFor(key) {
+    var opts = CHOICES[key] || [];
+    if (key === 'position2' && draft.enabled1 && draft.enabled2 && draft.camera && draft.camera2) {
+      return opts.filter(function (o) { return o[0] !== draft.position; });
+    }
+    if (key === 'position' && draft.enabled1 && draft.enabled2 && draft.camera && draft.camera2) {
+      return opts.filter(function (o) { return o[0] !== draft.position2; });
+    }
+    return opts;
+  }
+
+  // Repair an older saved configuration or a Camera 1 change without touching
+  // camera selection or the already occupied Camera 1 corner.
+  function freeSecondCorner() {
+    if (!draft.enabled1 || !draft.enabled2 || !draft.camera || !draft.camera2 || draft.position !== draft.position2) return;
+    var available = CHOICES.position2.filter(function (o) { return o[0] !== draft.position; });
+    if (available.length) draft.position2 = available[0][0];
+  }
 
   var root = document.getElementById('settings');
   var statusEl = document.getElementById('s-status');
@@ -50,7 +86,8 @@
     rows.forEach(function (row) {
       var key = row.getAttribute('data-key');
       if (row.classList.contains('choice')) {
-        var opts = CHOICES[key];
+        if (key === 'enabled1' || key === 'enabled2') row.classList.toggle('is-off', !draft[key]);
+        var opts = optionsFor(key);
         var current = opts.filter(function (o) { return String(o[0]) === String(draft[key]); })[0];
         // A saved camera that isn't in the (not yet loaded) list still shows its id.
         row.querySelector('.value').textContent = current ? current[1] : String(draft[key] || '');
@@ -74,11 +111,13 @@
   }
 
   function cycle(key, step) {
-    var opts = CHOICES[key];
+    var opts = optionsFor(key);
+    if (!opts.length) return;
     var idx = -1;
     opts.forEach(function (o, i) { if (String(o[0]) === String(draft[key])) idx = i; });
     idx = (idx + step + opts.length) % opts.length;
     draft[key] = opts[idx][0];
+    if (key === 'position' || key === 'camera' || key === 'camera2' || key === 'enabled1' || key === 'enabled2') freeSecondCorner();
     render();
   }
 
@@ -103,7 +142,9 @@
     return client.connect()
       .then(function () { return Promise.all([client.currentUser(), client.listCameras()]); })
       .then(function (res) {
-        CHOICES.camera = [CHOICES.camera[0]].concat(res[1].map(function (c) { return [c.id, c.name]; }));
+        var cameraOptions = res[1].map(function (c) { return [c.id, c.name]; });
+        CHOICES.camera = [CHOICES.camera[0]].concat(cameraOptions);
+        CHOICES.camera2 = [CHOICES.camera2[0]].concat(cameraOptions);
         setStatus('Connected to Home Assistant ' + client.haVersion + ' as ' + res[0].name +
           ' · ' + res[1].length + ' cameras', 'ok');
         render();
@@ -115,11 +156,23 @@
       });
   }
 
+  // Avoid two boxes hidden on top of each other in the same corner.
+  function validCameraLayout() {
+    if (draft.enabled1 && draft.enabled2 && draft.camera && draft.camera2 && draft.position === draft.position2) {
+      setStatus('Choose different corners for Camera 1 and Camera 2', 'bad');
+      return false;
+    }
+    return true;
+  }
+
   function save() {
     readInputs();
+    if (!validCameraLayout()) return;
     var ok = Store.save({
-      url: draft.url, token: draft.token, camera: draft.camera, mode: draft.mode,
-      position: draft.position, size: Number(draft.size), timeout: Number(draft.timeout)
+      url: draft.url, token: draft.token, camera: draft.camera, camera2: draft.camera2,
+      enabled1: !!draft.enabled1, enabled2: !!draft.enabled2,
+      mode: draft.mode, position: draft.position, position2: draft.position2,
+      size: Number(draft.size), size2: Number(draft.size2), timeout: Number(draft.timeout)
     });
     if (callbacks.toast) callbacks.toast(ok ? 'Settings saved' : 'Could not save settings');
   }
@@ -129,7 +182,7 @@
     else if (action === 'save') save();
     else if (action === 'preview') {
       readInputs();
-      if (callbacks.onPreview) callbacks.onPreview(Object.assign({}, draft));
+      if (validCameraLayout() && callbacks.onPreview) callbacks.onPreview(Object.assign({}, draft));
     } else if (action === 'exit' && callbacks.onExit) callbacks.onExit();
   }
 
@@ -197,6 +250,8 @@
     var target = e.target.closest('input, button, .value');
     var row = e.target.closest('.row');
     if (!row) return;
+    // Entire On/Off row is a one-click switch for Magic Remote pointer.
+    if (row.classList.contains('camera-toggle')) target = row.querySelector('.value');
     focus.row = rows.indexOf(row);
     focus.col = Math.max(0, rowItems(row).indexOf(target));
     render();
@@ -209,9 +264,15 @@
       callbacks = opts || {};
       var s = Store.get();
       draft = {
-        url: s.url || '', token: s.token || '', camera: s.camera || '', mode: s.mode,
-        position: s.position, size: Number(s.size), timeout: Number(s.timeout)
+        url: s.url || '', token: s.token || '', camera: s.camera || '',
+        camera2: s.camera2 || '', enabled1: s.enabled1 !== false && s.enabled1 !== 'false',
+        enabled2: s.enabled2 !== false && s.enabled2 !== 'false', mode: s.mode,
+        position: s.position, position2: s.position2 || 'bottom-left',
+        size: roundedSize(s.size, 30),
+        size2: roundedSize(s.size2, 30),
+        timeout: Number(s.timeout)
       };
+      freeSecondCorner();
       root.classList.remove('hidden');
       document.body.classList.add('settings-open');
       focus = { row: draft.url && draft.token ? rows.indexOf(root.querySelector('[data-key="camera"]')) : 0, col: 0 };
@@ -226,6 +287,7 @@
       document.body.classList.remove('settings-open');
     },
     resume: function () {
+      freeSecondCorner();
       root.classList.remove('hidden');
       document.body.classList.add('settings-open');
       render();
