@@ -35,8 +35,8 @@ Download `io.github.tixelcat.lgwebospip_1.0.6_all.ipk` from **Assets** below, th
 
 - Installed and user-tested on a real LG webOS TV: two simultaneous camera overlays, configuration and switches, equal windows, saved-layout action, title, and legacy compatibility.
 - The IPK contains `window.HA_CONFIG = {};`, not an embedded Home Assistant token.
-- **IPK size:** 213,836 bytes.
-- **SHA-256:** `17C7647E02E6627AB840FBF4D810ECBE1AD57521A041F0A40A27F0078A43C5CA`.
+- **IPK size:** 244,518 bytes.
+- **SHA-256:** `E9FA1F4A14A905130D021D4C5326442393FD332E5DCA439EB2672453FCA45B6B`.
 
 ## Scope / limitations
 
